@@ -241,6 +241,195 @@ This tool enables **real-time health data streaming into DHIS2**.
 
 ---
 
+## Running as a Systemd Service (Linux)
+
+For production deployments, it is recommended to run the consumer as a **systemd service**. This ensures the consumer automatically starts on boot and restarts if it crashes.
+
+### 1. Create a Service Template
+
+Create the following file:
+
+```
+/etc/systemd/system/dhis-consumer@.service
+```
+
+Service template:
+
+```
+[Unit]
+Description=DHIS Kafka Consumer Instance %i
+After=network.target
+
+[Service]
+Type=simple
+User=lamis
+WorkingDirectory=/opt/dhis2-kafka-consumer
+ExecStart=/usr/bin/python3 /opt/dhis2-kafka-consumer/src/consumer.py
+Restart=always
+RestartSec=5
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Explanation:
+
+- `%i` allows multiple service instances
+- `Restart=always` automatically restarts the consumer
+- logs are written to the system journal
+
+---
+
+## Reload Systemd
+
+After creating the service file:
+
+```
+sudo systemctl daemon-reload
+```
+
+---
+
+## Start a Consumer Instance
+
+Example:
+
+```
+sudo systemctl start dhis-consumer@1
+```
+
+Check status:
+
+```
+sudo systemctl status dhis-consumer@1
+```
+
+View logs:
+
+```
+journalctl -u dhis-consumer@1 -f
+```
+
+---
+
+## Enable Auto Start on Boot
+
+```
+sudo systemctl enable dhis-consumer@1
+```
+
+---
+
+## Running Multiple Consumer Instances
+
+Kafka allows multiple consumers in the same group to **share partitions automatically**.
+
+You can start multiple instances like this:
+
+```
+sudo systemctl start dhis-consumer@1
+sudo systemctl start dhis-consumer@2
+sudo systemctl start dhis-consumer@3
+```
+
+Each instance will join the same consumer group and process messages in parallel.
+
+Enable them on boot:
+
+```
+sudo systemctl enable dhis-consumer@1
+sudo systemctl enable dhis-consumer@2
+sudo systemctl enable dhis-consumer@3
+```
+
+---
+
+## Stop an Instance
+
+```
+sudo systemctl stop dhis-consumer@2
+```
+
+---
+
+## Restart an Instance
+
+```
+sudo systemctl restart dhis-consumer@1
+```
+
+---
+
+## View Logs
+
+Follow logs in real time:
+
+```
+journalctl -u dhis-consumer@1 -f
+```
+
+Show last 100 logs:
+
+```
+journalctl -u dhis-consumer@1 -n 100
+```
+
+---
+
+## Scaling Recommendations
+
+For optimal performance:
+
+- number of consumer instances should not exceed Kafka topic partitions
+- example:
+
+| Kafka Partitions | Recommended Consumers |
+| ---------------- | --------------------- |
+| 3                | 1–3                   |
+| 6                | 1–6                   |
+| 12               | 1–12                  |
+
+---
+
+## Example Production Setup
+
+```
+Topic partitions: 6
+Consumer group: dhis-consumer-group
+
+Running instances:
+dhis-consumer@1
+dhis-consumer@2
+dhis-consumer@3
+```
+
+Each instance processes messages independently while Kafka handles partition balancing automatically.
+
+---
+
+## Monitoring Consumers
+
+Check all running instances:
+
+```
+systemctl list-units | grep dhis-consumer
+```
+
+Example output:
+
+```
+dhis-consumer@1.service
+dhis-consumer@2.service
+dhis-consumer@3.service
+```
+
+---
+
+This setup allows the consumer to run reliably in production environments with automatic restarts and horizontal scaling.
+
 ## Roadmap
 
 Possible future improvements:
