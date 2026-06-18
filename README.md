@@ -68,7 +68,7 @@ dhis2-kafka-consumer
 Clone the repository:
 
 ```
-git clone https://github.com/YOUR_USERNAME/dhis2-kafka-consumer.git
+git clone https://github.com/Danmanu44/dhis2-kafka-consumer.git
 cd dhis2-kafka-consumer
 ```
 
